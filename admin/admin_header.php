@@ -40,6 +40,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <i class="fa-solid fa-gauge w-5 text-center"></i> Dashboard
             </a>
             
+            <a href="categories.php" class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 <?= ($current_page == 'categories.php') ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i> Categories
+            </a>
+            
             <a href="create_match.php" class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 <?= ($current_page == 'create_match.php') ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
                 <i class="fa-solid fa-square-plus w-5 text-center"></i> Create Match
             </a>
@@ -50,6 +54,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
             
             <a href="transactions.php" class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 <?= ($current_page == 'transactions.php') ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
                 <i class="fa-solid fa-money-bill-transfer w-5 text-center"></i> Transactions
+            </a>
+
+
+            <a href="settings.php" class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 <?= ($current_page == 'settings.php') ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white' ?>">
+                <i class="fa-solid fa-gear w-5 text-center"></i> App Settings
             </a>
 
             <div class="my-4 border-t border-gray-800"></div>
