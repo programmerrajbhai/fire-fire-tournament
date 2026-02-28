@@ -9,12 +9,13 @@ if (!isset($_SESSION['user_id'])) {
 }
 $user_id = $_SESSION['user_id'];
 
-// ইউজার এবং তার স্ট্যাটিস্টিক্স ডাটাবেস থেকে আনা
+// ইউজার এবং তার স্ট্যাটিস্টিক্স ডাটাবেস থেকে আনা 
+// (header.php এর সাথে কনফ্লিক্ট এড়াতে ভেরিয়েবলের নাম $user_profile দেওয়া হলো)
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
-$user = $stmt->fetch();
+$user_profile = $stmt->fetch();
 
-if (!$user) {
+if (!$user_profile) {
     session_destroy();
     header("Location: login.php");
     exit;
@@ -37,7 +38,7 @@ require_once 'includes/header.php';
         <div class="relative inline-block">
             <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-xl shadow-purple-500/20">
                 <div class="w-full h-full bg-[#1a1c29] rounded-full flex items-center justify-center text-3xl font-black text-white">
-                    <?= strtoupper(substr($user['name'], 0, 2)) ?>
+                    <?= strtoupper(substr($user_profile['name'], 0, 2)) ?>
                 </div>
             </div>
             <div class="absolute bottom-1 right-1 bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center border-2 border-[#0f111a] shadow-lg">
@@ -45,21 +46,21 @@ require_once 'includes/header.php';
             </div>
         </div>
         
-        <h2 class="text-2xl font-black mt-3 tracking-wide text-white"><?= htmlspecialchars($user['name']) ?></h2>
+        <h2 class="text-2xl font-black mt-3 tracking-wide text-white"><?= htmlspecialchars($user_profile['name']) ?></h2>
         <p class="text-xs text-gray-400 font-medium mt-1 mb-4 flex items-center justify-center gap-1.5">
-            <i class="fa-solid fa-envelope"></i> <?= htmlspecialchars($user['email']) ?>
+            <i class="fa-solid fa-envelope"></i> <?= htmlspecialchars($user_profile['email']) ?>
         </p>
 
         <div class="flex flex-wrap justify-center gap-3">
             <div onclick="copyText('uidText', 'UID')" class="flex items-center gap-2 bg-[#1a1c29] border border-gray-700 hover:border-indigo-500 px-4 py-2 rounded-xl cursor-pointer active:scale-95 transition-all group shadow-sm">
                 <span class="text-[10px] text-gray-500 font-black uppercase tracking-widest">UID</span>
-                <span id="uidText" class="text-sm font-bold text-gray-200"><?= htmlspecialchars($user['ff_uid']) ?></span>
+                <span id="uidText" class="text-sm font-bold text-gray-200"><?= htmlspecialchars($user_profile['ff_uid']) ?></span>
                 <i class="fa-regular fa-copy text-gray-500 group-hover:text-indigo-400 transition-colors ml-1"></i>
             </div>
             
             <div onclick="copyText('referText', 'Refer Code')" class="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500 px-4 py-2 rounded-xl cursor-pointer active:scale-95 transition-all group shadow-sm">
                 <span class="text-[10px] text-indigo-400 font-black uppercase tracking-widest">REFER</span>
-                <span id="referText" class="text-sm font-bold text-white"><?= htmlspecialchars($user['refer_code']) ?></span>
+                <span id="referText" class="text-sm font-bold text-white"><?= !empty($user_profile['refer_code']) ? htmlspecialchars($user_profile['refer_code']) : 'N/A' ?></span>
                 <i class="fa-regular fa-copy text-indigo-400 group-hover:text-white transition-colors ml-1"></i>
             </div>
         </div>
@@ -83,17 +84,17 @@ require_once 'includes/header.php';
 
             <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-1">Total Balance</p>
             <h1 class="text-4xl font-black text-white mb-6 flex items-end gap-1.5 drop-shadow-md">
-                <span class="text-green-400 text-2xl mb-1">৳</span><?= $user['balance'] ?>
+                <span class="text-green-400 text-2xl mb-1">৳</span><?= $user_profile['balance'] ?>
             </h1>
             
             <div class="flex items-center justify-between border-t border-gray-700/50 pt-4 mt-2">
                 <div>
                     <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">Deposit</p>
-                    <p class="font-black text-sm text-gray-200 mt-0.5">৳ <?= $user['deposit_balance'] ?></p>
+                    <p class="font-black text-sm text-gray-200 mt-0.5">৳ <?= $user_profile['deposit_balance'] ?></p>
                 </div>
                 <div class="text-right">
                     <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">Winning</p>
-                    <p class="font-black text-sm text-green-400 mt-0.5">৳ <?= $user['winning_balance'] ?></p>
+                    <p class="font-black text-sm text-green-400 mt-0.5">৳ <?= $user_profile['winning_balance'] ?></p>
                 </div>
             </div>
         </div>
@@ -132,7 +133,7 @@ require_once 'includes/header.php';
             </div>
             <div>
                 <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">Total Won</p>
-                <p class="font-black text-lg text-yellow-500 leading-tight">৳ <?= $user['winning_balance'] ?></p>
+                <p class="font-black text-lg text-yellow-500 leading-tight">৳ <?= $user_profile['winning_balance'] ?></p>
             </div>
         </div>
     </div>
@@ -153,6 +154,8 @@ require_once 'includes/header.php';
 // Dynamic Copy Text Function with Modern Snackbar
 function copyText(elementId, type) {
     var text = document.getElementById(elementId).innerText;
+    if(text === 'N/A') return; // Do not copy if there is no refer code
+    
     navigator.clipboard.writeText(text);
     
     var snackbar = document.getElementById("snackbar");

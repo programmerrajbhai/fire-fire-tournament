@@ -4,7 +4,8 @@ require_once 'includes/db.php';
 
 // অটো লগইন চেক
 if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1; 
+    header("Location: login.php");
+    exit;
 }
 $user_id = $_SESSION['user_id'];
 
@@ -25,7 +26,7 @@ if (isset($_POST['action'])) {
             $room = $match_data->fetch();
             echo json_encode(['status' => 'success', 'room_id' => $room['room_id'], 'room_pass' => $room['room_pass']]);
         } else {
-            echo json_encode(['status' => 'error', 'message' => "আপনি এই ম্যাচে এখনও জয়েন করেননি!"]);
+            echo json_encode(['status' => 'error', 'message' => "আপনি এই ম্যাচে এখনও জয়েন করেননি!"]);
         }
         exit;
     }
@@ -43,9 +44,9 @@ if (isset($_POST['action'])) {
         $check_exist->execute([$user_id, $match_id]);
 
         if ($check_exist->rowCount() > 0) {
-            echo json_encode(['status' => 'error', 'message' => 'আপনি ইতিমধ্যে জয়েন করেছেন!']);
+            echo json_encode(['status' => 'error', 'message' => 'আপনি ইতিমধ্যে জয়েন করেছেন!']);
         } elseif ($match['joined'] >= $match['total_slots']) {
-            echo json_encode(['status' => 'error', 'message' => 'ম্যাচটি ফুল হয়ে গেছে!']);
+            echo json_encode(['status' => 'error', 'message' => 'ম্যাচটি ফুল হয়ে গেছে!']);
         } elseif ($user['balance'] < $match['entry_fee']) {
             echo json_encode(['status' => 'error', 'message' => 'আপনার ব্যালেন্স অপর্যাপ্ত!']);
         } else {
@@ -55,7 +56,7 @@ if (isset($_POST['action'])) {
                 $pdo->prepare("INSERT INTO joined_matches (user_id, match_id) VALUES (?, ?)")->execute([$user_id, $match_id]);
                 $pdo->prepare("UPDATE matches SET joined = joined + 1 WHERE id = ?")->execute([$match_id]);
                 $pdo->commit();
-                echo json_encode(['status' => 'success', 'message' => 'সফলভাবে জয়েন করেছেন!']);
+                echo json_encode(['status' => 'success', 'message' => 'সফলভাবে জয়েন করেছেন!']);
             } catch (Exception $e) { $pdo->rollBack(); }
         }
         exit;
@@ -76,8 +77,10 @@ $stmt->execute([$category_name]);
 $matches = $stmt->fetchAll();
 ?>
 
-<div class="p-4 pb-24">
+<div class="p-4 pb-24 relative">
     
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-indigo-600/20 blur-[60px] -z-10 rounded-full"></div>
+
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
             <a href="index.php" class="text-white bg-[#1a1c29] border border-gray-700 p-2 rounded-xl w-10 h-10 flex items-center justify-center active:scale-90 transition">
@@ -129,7 +132,7 @@ $matches = $stmt->fetchAll();
 
                 <div class="grid grid-cols-3 gap-3 text-center mb-5">
                     <div class="border border-gray-700/60 rounded-xl py-2 bg-[#232736]/50">
-                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1">বিজয়ী</p>
+                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1">বিজয়ী</p>
                         <p class="font-black text-lg text-white">৳<?= $match['win_prize'] ?></p>
                     </div>
                     <div class="border border-gray-700/60 rounded-xl py-2 bg-[#232736]/50">
@@ -153,7 +156,7 @@ $matches = $stmt->fetchAll();
                     <?php if($is_full): ?>
                         <button class="bg-red-600/20 text-red-500 border border-red-500/50 px-5 py-2 rounded-xl text-xs font-bold cursor-not-allowed">FULL</button>
                     <?php else: ?>
-                        <button onclick="joinMatch(<?= $match['id'] ?>, <?= $match['entry_fee'] ?>)" class="bg-[#5a4bda] text-white px-6 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition-transform uppercase shadow-lg shadow-indigo-600/30 tracking-widest">Join</button>
+                        <button onclick="confirmJoin(<?= $match['id'] ?>, <?= $match['entry_fee'] ?>)" class="bg-[#5a4bda] text-white px-6 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition-transform uppercase shadow-lg shadow-indigo-600/30 tracking-widest">Join</button>
                     <?php endif; ?>
                 </div>
 
@@ -162,7 +165,7 @@ $matches = $stmt->fetchAll();
                         <i class="fa-solid fa-key"></i> রুম আইডি
                     </button>
                     <a href="match_details.php?id=<?= $match['id'] ?>" class="bg-[#2a2f45] py-3 rounded-xl text-[11px] text-indigo-300 font-black flex items-center justify-center gap-2 hover:bg-gray-700 transition">
-                        <i class="fa-solid fa-trophy"></i> পুরস্কার ও নিয়ম
+                        <i class="fa-solid fa-trophy"></i> পুরস্কার ও নিয়ম
                     </a>
                 </div>
             </div>
@@ -183,14 +186,15 @@ $matches = $stmt->fetchAll();
 
 <div id="customModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] hidden items-center justify-center p-6 transition-all">
     <div class="bg-[#1a1c29] border border-gray-800 rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl">
-        <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-[#2d324a]/20">
-            <h3 class="font-black text-white flex items-center gap-2 tracking-wide"><i class="fa-solid fa-shield-halved text-indigo-500"></i> রুম ইনফরমেশন</h3>
+        <div id="modalHeader" class="p-5 border-b border-gray-800 flex justify-between items-center bg-[#2d324a]/20">
+            <h3 id="modalTitle" class="font-black text-white flex items-center gap-2 tracking-wide text-sm">
+                </h3>
             <button onclick="closeModal()" class="text-gray-500 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
-        <div id="modalContent" class="p-8 text-center"></div>
-        <div class="p-5 bg-[#2d324a]/10">
-            <button onclick="closeModal()" class="w-full bg-white text-black font-black py-3.5 rounded-xl active:bg-gray-200 transition uppercase shadow-lg tracking-widest">Close</button>
-        </div>
+        <div id="modalContent" class="p-8 text-center">
+            </div>
+        <div id="modalFooter" class="p-5 bg-[#2d324a]/10">
+            </div>
     </div>
 </div>
 
@@ -219,20 +223,35 @@ function initTimers() {
 }
 initTimers();
 
-// Modal JS
+// Modal Controller JS
 const modal = document.getElementById('customModal');
+const modalTitle = document.getElementById('modalTitle');
 const modalContent = document.getElementById('modalContent');
-function showModal(html) { modalContent.innerHTML = html; modal.classList.remove('hidden'); modal.classList.add('flex'); }
-function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+const modalFooter = document.getElementById('modalFooter');
 
-// Room Check AJAX
+function showModal(title, content, footerHTML) { 
+    modalTitle.innerHTML = title;
+    modalContent.innerHTML = content; 
+    modalFooter.innerHTML = footerHTML;
+    modal.classList.remove('hidden'); 
+    modal.classList.add('flex'); 
+}
+function closeModal() { 
+    modal.classList.add('hidden'); 
+    modal.classList.remove('flex'); 
+}
+
+// 1. Room Check AJAX
 function checkRoom(matchId) {
     const fd = new FormData(); fd.append('action', 'get_room_details'); fd.append('match_id', matchId);
     fetch('matches.php', { method: 'POST', body: fd }).then(r => r.json()).then(data => {
+        const title = '<i class="fa-solid fa-shield-halved text-indigo-500"></i> রুম ইনফরমেশন';
+        const closeBtn = '<button onclick="closeModal()" class="w-full bg-white text-black font-black py-3.5 rounded-xl active:bg-gray-200 transition uppercase shadow-lg tracking-widest">Close</button>';
+        
         if(data.status === 'error') {
-            showModal(`<div class="bg-gray-800/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner"><i class="fa-solid fa-lock text-gray-500 text-3xl"></i></div><p class="text-gray-300 font-bold tracking-wide">${data.message}</p>`);
+            showModal(title, `<div class="bg-gray-800/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner"><i class="fa-solid fa-lock text-gray-500 text-3xl"></i></div><p class="text-gray-300 font-bold tracking-wide">${data.message}</p>`, closeBtn);
         } else {
-            showModal(`
+            showModal(title, `
                 <div class="text-left space-y-4 font-black">
                     <div class="bg-gray-800/50 p-4 rounded-2xl border border-gray-700 text-center">
                         <p class="text-[11px] text-gray-400 mb-1 uppercase tracking-widest">Room ID</p>
@@ -244,19 +263,56 @@ function checkRoom(matchId) {
                     </div>
                 </div>
                 <p class="text-[10px] text-orange-400 mt-4">* উপরে ক্লিক করে লেখাটি কপি করতে পারবেন।</p>
-            `);
+            `, closeBtn);
         }
     });
 }
 
-// Join Match AJAX
-function joinMatch(matchId, fee) {
-    if(confirm(`আপনি কি জয়েন করতে চান? আপনার অ্যাকাউন্ট থেকে ৳${fee} কেটে নেওয়া হবে।`)) {
-        const fd = new FormData(); fd.append('action', 'join_match'); fd.append('match_id', matchId);
-        fetch('matches.php', { method: 'POST', body: fd }).then(r => r.json()).then(data => {
-            alert(data.message); if(data.status === 'success') location.reload();
-        });
-    }
+// 2. Custom Join Match Confirmation Dialog
+function confirmJoin(matchId, fee) {
+    const title = '<i class="fa-solid fa-circle-exclamation text-orange-500"></i> জয়েন কনফার্মেশন';
+    const content = `
+        <div class="bg-gray-800/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-gray-700">
+            <i class="fa-solid fa-wallet text-indigo-400 text-3xl"></i>
+        </div>
+        <p class="text-gray-300 font-bold tracking-wide mb-2">আপনি কি এই ম্যাচে জয়েন করতে চান?</p>
+        <p class="text-sm text-gray-400">আপনার অ্যাকাউন্ট থেকে <span class="text-white font-black">৳${fee}</span> কেটে নেওয়া হবে।</p>
+    `;
+    const footerBtn = `
+        <div class="flex gap-3">
+            <button onclick="closeModal()" class="flex-1 bg-gray-800 text-gray-400 font-black py-3.5 rounded-xl border border-gray-700 hover:text-white transition uppercase text-xs tracking-widest">Cancel</button>
+            <button id="joinBtnProcess" onclick="processJoin(${matchId})" class="flex-1 bg-indigo-600 text-white font-black py-3.5 rounded-xl active:scale-95 transition-transform uppercase shadow-lg shadow-indigo-600/30 text-xs tracking-widest">Confirm Join</button>
+        </div>
+    `;
+    showModal(title, content, footerBtn);
+}
+
+// 3. Process Join Match AJAX
+function processJoin(matchId) {
+    // Disable button to prevent double click
+    const btn = document.getElementById('joinBtnProcess');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true;
+    
+    const fd = new FormData(); fd.append('action', 'join_match'); fd.append('match_id', matchId);
+    
+    fetch('matches.php', { method: 'POST', body: fd }).then(r => r.json()).then(data => {
+        if(data.status === 'success') {
+            // Success Modal
+            showModal(
+                '<i class="fa-solid fa-circle-check text-green-500"></i> অভিনন্দন!', 
+                `<div class="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20"><i class="fa-solid fa-check text-green-400 text-4xl"></i></div><p class="text-white font-black text-lg tracking-wide">${data.message}</p>`,
+                '<button onclick="location.reload()" class="w-full bg-green-600 text-white font-black py-3.5 rounded-xl shadow-lg shadow-green-600/30 uppercase tracking-widest">OK</button>'
+            );
+        } else {
+            // Error Modal
+            showModal(
+                '<i class="fa-solid fa-triangle-exclamation text-red-500"></i> সমস্যা হয়েছে!', 
+                `<div class="bg-red-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20"><i class="fa-solid fa-xmark text-red-400 text-4xl"></i></div><p class="text-white font-black text-lg tracking-wide">${data.message}</p>`,
+                '<button onclick="closeModal()" class="w-full bg-gray-800 text-white font-black py-3.5 rounded-xl border border-gray-700 uppercase tracking-widest">Close</button>'
+            );
+        }
+    });
 }
 </script>
 
